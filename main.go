@@ -59,14 +59,10 @@ func main() {
 		w.Write([]byte("welcome"))
 	})
 
-	// r.Route("/products", func(r chi.Router) {
-	// 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-	// 		productHandler.GetAllProduct(w, r)
-	// 	})
-	// })
-
-	r.Get("/products", func(w http.ResponseWriter, r *http.Request) {
-		productHandler.GetAllProduct(w, r)
+	r.Route("/products", func(r chi.Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			productHandler.GetAllProduct(w, r)
+		})
 	})
 
 	r.Get("/categories", func(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +93,7 @@ func main() {
 	addr := "0.0.0.0:" + config.Port
 	fmt.Println("Server running di", addr)
 
-	err = http.ListenAndServe(addr, nil)
+	err = http.ListenAndServe(addr, r)
 	if err != nil {
 		fmt.Println("gagal running server", err)
 	}
