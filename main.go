@@ -49,6 +49,10 @@ func main() {
 	}
 	defer db.Close()
 
+	categoryRepo := repositories.NewCategoryRepository(db)
+	categoryService := services.NewCategoryService(categoryRepo)
+	categoryHandler := handler.NewCategoryHandler(categoryService)
+
 	productRepo := repositories.NewProductRepository(db)
 	productService := services.NewProductService(productRepo)
 	productHandler := handler.NewProductHandler(productService)
@@ -59,36 +63,66 @@ func main() {
 		w.Write([]byte("welcome"))
 	})
 
+	r.Route("/categories", func(r chi.Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			categoryHandler.GetAllCategory(w, r)
+		})
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+			categoryHandler.CreateCategory(w, r)
+		})
+		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+			categoryHandler.GetCategoryByID(w, r)
+		})
+		r.Put("/update/{id}", func(w http.ResponseWriter, r *http.Request) {
+			categoryHandler.UpdateCategory(w, r)
+		})
+		r.Delete("/delete/{id}", func(w http.ResponseWriter, r *http.Request) {
+			categoryHandler.DeleteCategory(w, r)
+		})
+	})
+
 	r.Route("/products", func(r chi.Router) {
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			productHandler.GetAllProduct(w, r)
 		})
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+			productHandler.CreateProduct(w, r)
+		})
+		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+			productHandler.GetProductByID(w, r)
+		})
+		r.Put("/update/{id}", func(w http.ResponseWriter, r *http.Request) {
+			productHandler.UpdateProduct(w, r)
+		})
+		r.Delete("/delete/{id}", func(w http.ResponseWriter, r *http.Request) {
+			productHandler.DeleteProduct(w, r)
+		})
 	})
 
-	r.Get("/categories", func(w http.ResponseWriter, r *http.Request) {
-		err := handler.GetAll(w, r)
-		handleError(w, err)
-	})
+	// r.Get("/categories", func(w http.ResponseWriter, r *http.Request) {
+	// 	err := handler.GetAll(w, r)
+	// 	handleError(w, err)
+	// })
 
-	r.Post("/categories", func(w http.ResponseWriter, r *http.Request) {
-		err := handler.CreateCategory(w, r)
-		handleError(w, err)
-	})
+	// r.Post("/categories", func(w http.ResponseWriter, r *http.Request) {
+	// 	err := handler.CreateCategory(w, r)
+	// 	handleError(w, err)
+	// })
 
-	r.Get("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
-		err := handler.FindCategoryById(w, r)
-		handleError(w, err)
-	})
+	// r.Get("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
+	// 	err := handler.FindCategoryById(w, r)
+	// 	handleError(w, err)
+	// })
 
-	r.Put("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
-		err := handler.UpdateCategoryById(w, r)
-		handleError(w, err)
-	})
+	// r.Put("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
+	// 	err := handler.UpdateCategoryById(w, r)
+	// 	handleError(w, err)
+	// })
 
-	r.Delete("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
-		err := handler.DeleteCategoryById(w, r)
-		handleError(w, err)
-	})
+	// r.Delete("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
+	// 	err := handler.DeleteCategoryById(w, r)
+	// 	handleError(w, err)
+	// })
 
 	addr := "0.0.0.0:" + config.Port
 	fmt.Println("Server running di", addr)

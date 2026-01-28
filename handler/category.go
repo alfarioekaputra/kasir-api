@@ -4,122 +4,111 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"labkoding.my.id/kasir-api/models"
+	"labkoding.my.id/kasir-api/services"
 )
 
-type Category struct {
-	ID          int    `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+type CategoryHandler struct {
+	service *services.CategoryService
 }
 
-var categories = []Category{
-	{ID: 1, Name: "Makanan", Description: "Kategori makanan"},
-	{ID: 2, Name: "Minuman", Description: "Kategori minuman"},
-	{ID: 3, Name: "Elektronik", Description: "Kategori elektronik"},
+func NewCategoryHandler(service *services.CategoryService) *CategoryHandler {
+	return &CategoryHandler{
+		service: service,
+	}
 }
 
-func GetAll(w http.ResponseWriter, r *http.Request) error {
+func (h *CategoryHandler) GetAllCategory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	err := json.NewEncoder(w).Encode(categories)
+	categories, err := h.service.GetAllCategories()
 	if err != nil {
 		slog.Error(err.Error())
-		return err
+		return
 	}
 
-	return nil
+	json.NewEncoder(w).Encode(categories)
+
 }
 
-func FindCategoryById(w http.ResponseWriter, r *http.Request) error {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		http.Error(w, "Invalid Category ID", http.StatusBadRequest)
-		slog.Error(err.Error())
-	}
-
-	for _, c := range categories {
-		if c.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(c)
-			return nil
-		}
-	}
-
-	http.Error(w, "Category not found", http.StatusNotFound)
-	return nil
-}
-
-func CreateCategory(w http.ResponseWriter, r *http.Request) error {
-	var newCategory Category
-
-	err := json.NewDecoder(r.Body).Decode(&newCategory)
-	if err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		slog.Error(err.Error())
-		return nil
-	}
-
-	newCategory.ID = len(categories) + 1
-	categories = append(categories, newCategory)
-
+func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newCategory)
 
-	return nil
+	var category models.CategoryRequest
+	err := json.NewDecoder(r.Body).Decode(&category)
+	if err != nil {
+		http.Error(w, "ada kesalahan saat mengambil data", http.StatusBadRequest)
+		slog.Error(err.Error())
+		return
+	}
+
+	err = h.service.CreateCategory(&category)
+	if err != nil {
+		http.Error(w, "ada kesalahan saat membuat kategori", http.StatusBadRequest)
+		slog.Error(err.Error())
+		return
+	}
+
+	json.NewEncoder(w).Encode(category)
+
 }
 
-func UpdateCategoryById(w http.ResponseWriter, r *http.Request) error {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "id tidak boleh kosong", http.StatusBadRequest)
+		return
+	}
+
+	var category models.CategoryRequest
+	err := json.NewDecoder(r.Body).Decode(&category)
 	if err != nil {
-		http.Error(w, "Invalid Category ID", http.StatusBadRequest)
+		http.Error(w, "ada kesalahan saat mengambil data", http.StatusBadRequest)
 		slog.Error(err.Error())
+		return
 	}
 
-	var updateCategory Category
-	err = json.NewDecoder(r.Body).Decode(&updateCategory)
+	category.ID = id
+	err = h.service.UpdateCategory(&category)
 	if err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		http.Error(w, "ada kesalahan saat mengupdate category", http.StatusBadRequest)
 		slog.Error(err.Error())
-		return nil
+		return
 	}
 
-	for i := range categories {
-		if categories[i].ID == id {
-			updateCategory.ID = id
-			categories[i] = updateCategory
+	json.NewEncoder(w).Encode(category)
 
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(updateCategory)
-			return nil
-		}
-	}
-
-	return nil
 }
 
-func DeleteCategoryById(w http.ResponseWriter, r *http.Request) error {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	id := chi.URLParam(r, "id")
+	err := h.service.DeleteCategory(id)
 	if err != nil {
-		http.Error(w, "Invalid Category ID", http.StatusBadRequest)
+		http.Error(w, "ada kesalahan saat menghapus category", http.StatusBadRequest)
 		slog.Error(err.Error())
+		return
 	}
 
-	for i, c := range categories {
-		if c.ID == id {
-			categories = append(categories[:i], categories[i+1:]...)
+	json.NewEncoder(w).Encode("category berhasil dihapus")
 
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"message": "success delete",
-			})
-			return nil
-		}
+}
+
+func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	id := chi.URLParam(r, "id")
+	category, err := h.service.GetCategoryByID(id)
+	if err != nil {
+		http.Error(w, "category tidak ditemukan", http.StatusNotFound)
+		slog.Error(err.Error())
+		return
 	}
 
-	http.Error(w, "category belum ada", http.StatusNotFound)
-	return nil
+	json.NewEncoder(w).Encode(category)
 }

@@ -23,7 +23,7 @@ func (s *ProductService) CreateProduct(product *models.Product) error {
 	return s.repo.CreateProduct(product)
 }
 
-func (s *ProductService) GetProductByID(id int) (*models.Product, error) {
+func (s *ProductService) GetProductByID(id string) (*models.Product, error) {
 	return s.repo.GetProductByID(id)
 }
 
@@ -31,6 +31,6 @@ func (s *ProductService) UpdateProduct(product *models.Product) error {
 	return s.repo.UpdateProduct(product)
 }
 
-func (s *ProductService) DeleteProduct(id int) error {
+func (s *ProductService) DeleteProduct(id string) error {
 	return s.repo.DeleteProduct(id)
 }

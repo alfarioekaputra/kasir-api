@@ -20,7 +20,7 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 func (r *ProductRepository) GetAllProducts() ([]models.Product, error) {
 	var products []models.Product
 
-	rows, err := r.db.Query("SELECT id, name, description, price, stock FROM products")
+	rows, err := r.db.Query("SELECT products.id, products.name, products.description, products.price, products.stock, categories.id as category_id, categories.name as category_name FROM products LEFT JOIN categories ON products.category_id = categories.id")
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (r *ProductRepository) GetAllProducts() ([]models.Product, error) {
 
 	for rows.Next() {
 		var product models.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Stock); err != nil {
+		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Stock, &product.CategoryID, &product.CategoryName); err != nil {
 			return nil, err
 		}
 		products = append(products, product)
@@ -41,12 +41,12 @@ func (r *ProductRepository) GetAllProducts() ([]models.Product, error) {
 	return products, nil
 }
 
-func (r *ProductRepository) GetProductByID(id int) (*models.Product, error) {
+func (r *ProductRepository) GetProductByID(id string) (*models.Product, error) {
 	var product models.Product
 
-	row := r.db.QueryRow("SELECT id, name, description, price, stock FROM products WHERE id = $1", id)
+	row := r.db.QueryRow("SELECT products.id, products.name, products.description, products.price, products.stock, categories.id as category_id, categories.name as category_name FROM products LEFT JOIN categories ON products.category_id = categories.id WHERE products.id = $1", id)
 
-	if err := row.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Stock); err != nil {
+	if err := row.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Stock, &product.CategoryID, &product.CategoryName); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("produk tidak ditemukan")
 		}
@@ -57,12 +57,12 @@ func (r *ProductRepository) GetProductByID(id int) (*models.Product, error) {
 }
 
 func (r *ProductRepository) CreateProduct(product *models.Product) error {
-	_, err := r.db.Exec("INSERT INTO products (name, description, price, stock) VALUES ($1, $2, $3, $4)", product.Name, product.Description, product.Price, product.Stock)
+	_, err := r.db.Exec("INSERT INTO products (name, description, price, stock, category_id) VALUES ($1, $2, $3, $4, $5)", product.Name, product.Description, product.Price, product.Stock, product.CategoryID)
 	return err
 }
 
 func (r *ProductRepository) UpdateProduct(product *models.Product) error {
-	result, err := r.db.Exec("UPDATE products SET name = $1, description = $2, price = $3, stock = $4 WHERE id = $5", product.Name, product.Description, product.Price, product.Stock, product.ID)
+	result, err := r.db.Exec("UPDATE products SET name = $1, description = $2, price = $3, stock = $4, category_id = $5 WHERE id = $6", product.Name, product.Description, product.Price, product.Stock, product.CategoryID, product.ID)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (r *ProductRepository) UpdateProduct(product *models.Product) error {
 	return err
 }
 
-func (r *ProductRepository) DeleteProduct(id int) error {
+func (r *ProductRepository) DeleteProduct(id string) error {
 	result, err := r.db.Exec("DELETE FROM products WHERE id = $1", id)
 	if err != nil {
 		return err
