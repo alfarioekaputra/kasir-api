@@ -59,10 +59,14 @@ func main() {
 		w.Write([]byte("welcome"))
 	})
 
-	r.Route("/products", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			productHandler.GetAllProduct(w, r)
-		})
+	// r.Route("/products", func(r chi.Router) {
+	// 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	// 		productHandler.GetAllProduct(w, r)
+	// 	})
+	// })
+
+	r.Get("/products", func(w http.ResponseWriter, r *http.Request) {
+		productHandler.GetAllProduct(w, r)
 	})
 
 	r.Get("/categories", func(w http.ResponseWriter, r *http.Request) {
