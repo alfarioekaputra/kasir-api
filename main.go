@@ -1,13 +1,26 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/spf13/viper"
+	"labkoding.my.id/kasir-api/database"
 	"labkoding.my.id/kasir-api/handler"
+	"labkoding.my.id/kasir-api/repositories"
+	"labkoding.my.id/kasir-api/services"
 )
+
+type Config struct {
+	Port   string `mapstructure:"PORT"`
+	DBConn string `mapstructure:"DB_CONN"`
+}
 
 func handleError(w http.ResponseWriter, err error) {
 	if err != nil {
@@ -17,10 +30,39 @@ func handleError(w http.ResponseWriter, err error) {
 }
 
 func main() {
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if _, err := os.Stat(".env"); err == nil {
+		viper.SetConfigFile(".env")
+		_ = viper.ReadInConfig()
+	}
+
+	config := Config{
+		Port:   viper.GetString("PORT"),
+		DBConn: viper.GetString("DB_CONN"),
+	}
+
+	db, err := database.InitDB(config.DBConn)
+	if err != nil {
+		log.Fatal("Failed to initialize database:", err)
+	}
+	defer db.Close()
+
+	productRepo := repositories.NewProductRepository(db)
+	productService := services.NewProductService(productRepo)
+	productHandler := handler.NewProductHandler(productService)
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome"))
+	})
+
+	r.Route("products", func(r chi.Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			productHandler.GetAllProduct(w, r)
+		})
 	})
 
 	r.Get("/categories", func(w http.ResponseWriter, r *http.Request) {
@@ -48,5 +90,11 @@ func main() {
 		handleError(w, err)
 	})
 
-	http.ListenAndServe(":3000", r)
+	addr := "0.0.0.0:" + config.Port
+	fmt.Println("Server running di", addr)
+
+	err = http.ListenAndServe(addr, nil)
+	if err != nil {
+		fmt.Println("gagal running server", err)
+	}
 }
