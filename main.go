@@ -99,31 +99,6 @@ func main() {
 		})
 	})
 
-	// r.Get("/categories", func(w http.ResponseWriter, r *http.Request) {
-	// 	err := handler.GetAll(w, r)
-	// 	handleError(w, err)
-	// })
-
-	// r.Post("/categories", func(w http.ResponseWriter, r *http.Request) {
-	// 	err := handler.CreateCategory(w, r)
-	// 	handleError(w, err)
-	// })
-
-	// r.Get("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
-	// 	err := handler.FindCategoryById(w, r)
-	// 	handleError(w, err)
-	// })
-
-	// r.Put("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
-	// 	err := handler.UpdateCategoryById(w, r)
-	// 	handleError(w, err)
-	// })
-
-	// r.Delete("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
-	// 	err := handler.DeleteCategoryById(w, r)
-	// 	handleError(w, err)
-	// })
-
 	addr := "0.0.0.0:" + config.Port
 	fmt.Println("Server running di", addr)
 
