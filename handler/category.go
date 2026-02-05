@@ -23,7 +23,8 @@ func NewCategoryHandler(service *services.CategoryService) *CategoryHandler {
 func (h *CategoryHandler) GetAllCategory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	categories, err := h.service.GetAllCategories()
+	name := r.URL.Query().Get("name")
+	categories, err := h.service.GetAllCategories(name)
 	if err != nil {
 		slog.Error(err.Error())
 		return

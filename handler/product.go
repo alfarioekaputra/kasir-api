@@ -24,7 +24,8 @@ func NewProductHandler(service *services.ProductService) *Producthandler {
 func (h *Producthandler) GetAllProduct(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	products, err := h.service.GetAllProducts()
+	name := r.URL.Query().Get("name")
+	products, err := h.service.GetAllProducts(name)
 	fmt.Println(products)
 	if err != nil {
 		slog.Error(err.Error())

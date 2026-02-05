@@ -15,8 +15,8 @@ func NewCategoryService(repo *repositories.CategoryRepository) *CategoryService 
 	}
 }
 
-func (s *CategoryService) GetAllCategories() ([]models.CategoryResponse, error) {
-	return s.repo.GetAllCategories()
+func (s *CategoryService) GetAllCategories(name string) ([]models.CategoryResponse, error) {
+	return s.repo.GetAllCategories(name)
 }
 
 func (s *CategoryService) CreateCategory(category *models.CategoryRequest) error {

@@ -17,10 +17,17 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 	}
 }
 
-func (r *ProductRepository) GetAllProducts() ([]models.Product, error) {
+func (r *ProductRepository) GetAllProducts(name string) ([]models.Product, error) {
 	var products []models.Product
 
-	rows, err := r.db.Query("SELECT products.id, products.name, products.description, products.price, products.stock, categories.id as category_id, categories.name as category_name FROM products LEFT JOIN categories ON products.category_id = categories.id")
+	args := []interface{}{}
+	query := "SELECT products.id, products.name, products.description, products.price, products.stock, categories.id as category_id, categories.name as category_name FROM products LEFT JOIN categories ON products.category_id = categories.id"
+	if name != "" {
+		query += " WHERE products.name ILIKE $1"
+		args = append(args, "%"+name+"%")
+	}
+	rows, err := r.db.Query(query, args...)
+
 	if err != nil {
 		return nil, err
 	}
