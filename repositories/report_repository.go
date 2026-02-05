@@ -19,12 +19,12 @@ func NewReportRepository(db *sql.DB) *ReportRepository {
 func (r *ReportRepository) TodayReport() (models.Report, error) {
 	var report models.Report
 
-	err := r.db.QueryRow("SELECT SUM(total_amount), COUNT(*) as total_transaction FROM transactions WHERE DATE(created_at) = CURRENT_DATE").Scan(&report.TotalRevenue, &report.TotalTransactions)
+	err := r.db.QueryRow("SELECT COALESCE(SUM(total_amount),0), COALESCE(COUNT(*),0) as total_transaction FROM transactions WHERE DATE(created_at) = CURRENT_DATE").Scan(&report.TotalRevenue, &report.TotalTransactions)
 	if err != nil {
 		return models.Report{}, err
 	}
 
-	rows, err := r.db.Query("SELECT p.name, SUM(td.quantity) FROM transaction_details td JOIN products p ON td.product_id = p.id WHERE td.transaction_id IN (SELECT id FROM transactions WHERE DATE(created_at) = CURRENT_DATE) GROUP BY p.name ORDER BY SUM(td.quantity) DESC LIMIT 1")
+	rows, err := r.db.Query("SELECT p.name, COALESCE(SUM(td.quantity),0) FROM transaction_details td JOIN products p ON td.product_id = p.id WHERE td.transaction_id IN (SELECT id FROM transactions WHERE DATE(created_at) = CURRENT_DATE) GROUP BY p.name ORDER BY SUM(td.quantity) DESC LIMIT 1")
 	if err != nil {
 		return models.Report{}, err
 	}
@@ -53,7 +53,7 @@ func (r *ReportRepository) Range(startDate, endDate string) (models.Report, erro
 		return models.Report{}, err
 	}
 
-	rows, err := r.db.Query("SELECT p.name, SUM(td.quantity) FROM transaction_details td JOIN products p ON td.product_id = p.id WHERE td.transaction_id IN (SELECT id FROM transactions WHERE DATE(created_at) between $1 and $2) GROUP BY p.name ORDER BY SUM(td.quantity) DESC LIMIT 1", startDate, endDate)
+	rows, err := r.db.Query("SELECT p.name, COALESCE(SUM(td.quantity),0) FROM transaction_details td JOIN products p ON td.product_id = p.id WHERE td.transaction_id IN (SELECT id FROM transactions WHERE DATE(created_at) between $1 and $2) GROUP BY p.name ORDER BY SUM(td.quantity) DESC LIMIT 1", startDate, endDate)
 	if err != nil {
 		return models.Report{}, err
 	}
