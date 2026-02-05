@@ -46,7 +46,30 @@ func (rt *Router) RegisterProductRoutes() {
 	})
 }
 
+func (rt *Router) RegisterTransactionRoutes() {
+	transactionRepo := repositories.NewTransactionRepository(rt.db)
+	transactionService := services.NewTransactionService(transactionRepo)
+	transactionHandler := handler.NewTransactionHandler(transactionService)
+
+	rt.router.Route("/transactions", func(r chi.Router) {
+		r.Post("/checkout", transactionHandler.Checkout)
+	})
+}
+
+func (rt *Router) RegisterReportRoutes() {
+	reportRepo := repositories.NewReportRepository(rt.db)
+	reportService := services.NewReportService(reportRepo)
+	reportHandler := handler.NewReportHandler(reportService)
+
+	rt.router.Route("/report", func(r chi.Router) {
+		r.Get("/", reportHandler.RangeReport)
+		r.Get("/today", reportHandler.TodayReport)
+	})
+}
+
 func (rt *Router) RegisterAllRoutes() {
 	rt.RegisterCategoryRoutes()
 	rt.RegisterProductRoutes()
+	rt.RegisterTransactionRoutes()
+	rt.RegisterReportRoutes()
 }
