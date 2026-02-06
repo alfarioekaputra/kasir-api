@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"labkoding.my.id/kasir-api/models"
@@ -40,14 +42,55 @@ func (h *Producthandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var product models.Product
-	err := json.NewDecoder(r.Body).Decode(&product)
-	if err != nil {
-		http.Error(w, "ada kesalahan saat mengambil data", http.StatusBadRequest)
-		slog.Error(err.Error())
-		return
+
+	// support multipart/form-data with file upload under field "picture"
+	ct := r.Header.Get("Content-Type")
+	if strings.HasPrefix(ct, "multipart/form-data") {
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			http.Error(w, "failed to parse multipart form", http.StatusBadRequest)
+			slog.Error(err.Error())
+			return
+		}
+
+		product.Name = r.FormValue("name")
+		if desc := r.FormValue("description"); desc != "" {
+			product.Description = &desc
+		}
+		if p := r.FormValue("price"); p != "" {
+			if v, err := strconv.Atoi(p); err == nil {
+				product.Price = v
+			}
+		}
+		if s := r.FormValue("stock"); s != "" {
+			if v, err := strconv.Atoi(s); err == nil {
+				product.Stock = v
+			}
+		}
+		product.CategoryID = r.FormValue("category_id")
+
+		file, header, err := r.FormFile("picture_url")
+		if err == nil {
+			defer file.Close()
+			// delegate upload to service for better separation of concerns
+			url, err := h.service.UploadProductImage(r.Context(), file, header.Filename, header.Header.Get("Content-Type"))
+			if err != nil {
+				http.Error(w, "gagal mengupload gambar", http.StatusInternalServerError)
+				slog.Error(err.Error())
+				return
+			}
+			product.PictureURL = &url
+		}
+	} else {
+		// fallback to JSON body
+		err := json.NewDecoder(r.Body).Decode(&product)
+		if err != nil {
+			http.Error(w, "ada kesalahan saat mengambil data", http.StatusBadRequest)
+			slog.Error(err.Error())
+			return
+		}
 	}
 
-	err = h.service.CreateProduct(&product)
+	err := h.service.CreateProduct(&product)
 	if err != nil {
 		http.Error(w, "ada kesalahan saat membuat produk", http.StatusBadRequest)
 		slog.Error(err.Error())

@@ -107,7 +107,7 @@ func (r *CategoryRepository) GetCategoryByID(id string) (*models.Category, error
 }
 
 func (r *CategoryRepository) CreateCategory(category *models.CategoryRequest) error {
-	_, err := r.db.Exec("INSERT INTO categories (name, description) VALUES ($1, $2) returning id", category.Name, category.Description)
+	err := r.db.QueryRow("INSERT INTO categories (name, description) VALUES ($1, $2) returning id", category.Name, category.Description).Scan(&category.ID)
 	return err
 }
 

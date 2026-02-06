@@ -64,12 +64,22 @@ func (r *ProductRepository) GetProductByID(id string) (*models.Product, error) {
 }
 
 func (r *ProductRepository) CreateProduct(product *models.Product) error {
-	_, err := r.db.Exec("INSERT INTO products (name, description, price, stock, category_id) VALUES ($1, $2, $3, $4, $5)", product.Name, product.Description, product.Price, product.Stock, product.CategoryID)
-	return err
+	err := r.db.QueryRow("INSERT INTO products (name, description, price, stock, category_id, picture_url) VALUES ($1, $2, $3, $4, $5, $6) returning id, category_id", product.Name, product.Description, product.Price, product.Stock, product.CategoryID, product.PictureURL).Scan(&product.ID, &product.CategoryID)
+
+	if err != nil {
+		return err
+	}
+
+	err = r.db.QueryRow("SELECT name FROM categories WHERE id = $1", product.CategoryID).Scan(&product.CategoryName)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *ProductRepository) UpdateProduct(product *models.Product) error {
-	result, err := r.db.Exec("UPDATE products SET name = $1, description = $2, price = $3, stock = $4, category_id = $5 WHERE id = $6", product.Name, product.Description, product.Price, product.Stock, product.CategoryID, product.ID)
+	result, err := r.db.Exec("UPDATE products SET name = $1, description = $2, price = $3, stock = $4, category_id = $5, picture_url = $6 WHERE id = $7", product.Name, product.Description, product.Price, product.Stock, product.CategoryID, product.PictureURL, product.ID)
 	if err != nil {
 		return err
 	}
@@ -82,7 +92,7 @@ func (r *ProductRepository) UpdateProduct(product *models.Product) error {
 	if rows == 0 {
 		return errors.New("produk tidak ditemukan")
 	}
-	return err
+	return nil
 }
 
 func (r *ProductRepository) DeleteProduct(id string) error {
@@ -98,5 +108,5 @@ func (r *ProductRepository) DeleteProduct(id string) error {
 	if rows == 0 {
 		return errors.New("produk tidak ditemukan")
 	}
-	return err
+	return nil
 }
