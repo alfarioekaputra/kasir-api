@@ -28,9 +28,10 @@ func (h *Producthandler) GetAllProduct(w http.ResponseWriter, r *http.Request) {
 
 	name := r.URL.Query().Get("name")
 	products, err := h.service.GetAllProducts(name)
-	fmt.Println(products)
+
 	if err != nil {
 		slog.Error(err.Error())
+		http.Error(w, "ada kesalahan saat mengambil produk", http.StatusInternalServerError)
 		return
 	}
 
