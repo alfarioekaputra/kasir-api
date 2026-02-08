@@ -159,7 +159,8 @@ b) POST `/products`
   "description": "Teh manis",
   "price": 5000,
   "stock": 10,
-  "category_id": "60a974b9-ee9e-4fe7-80cc-4331d41ad275"
+  "category_id": "60a974b9-ee9e-4fe7-80cc-4331d41ad275",
+  "picture_url": "https://example.com/teh-botol.jpg"
 }
 ```
 
@@ -193,7 +194,8 @@ d) PUT `/products/update/{id}`
   "description": "Teh manis dingin",
   "price": 5500,
   "stock": 15,
-  "category_id": "60a974b9-ee9e-4fe7-80cc-4331d41ad275"
+  "category_id": "60a974b9-ee9e-4fe7-80cc-4331d41ad275",
+  "picture_url": "https://example.com/teh-botol.jpg"
 }
 ```
 
