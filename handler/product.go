@@ -49,24 +49,33 @@ func (h *Producthandler) parseProductFromForm(w http.ResponseWriter, r *http.Req
 		if err := r.ParseMultipartForm(1 << 20); err != nil {
 			return nil, fmt.Errorf("ukuran file maksimal 1MB: %w", err)
 		}
+		defer r.MultipartForm.RemoveAll()
 
 		product.Name = r.FormValue("name")
 		if desc := r.FormValue("description"); desc != "" {
 			product.Description = &desc
 		}
 		if p := r.FormValue("price"); p != "" {
-			if v, err := strconv.Atoi(p); err == nil {
-				product.Price = v
+			v, err := strconv.Atoi(p)
+			if err != nil {
+				return nil, fmt.Errorf("price harus berupa angka yang valid")
 			}
+			product.Price = v
 		}
 		if s := r.FormValue("stock"); s != "" {
-			if v, err := strconv.Atoi(s); err == nil {
-				product.Stock = v
+			v, err := strconv.Atoi(s)
+			if err != nil {
+				return nil, fmt.Errorf("stock harus berupa angka yang valid")
 			}
+			product.Stock = v
 		}
 		product.CategoryID = r.FormValue("category_id")
 
 		file, header, err := r.FormFile("picture_url")
+		if err != nil && err != http.ErrMissingFile {
+			// Real error occurred (not just missing file)
+			return nil, fmt.Errorf("gagal membaca file: %w", err)
+		}
 		if err == nil {
 			defer file.Close()
 
@@ -82,6 +91,7 @@ func (h *Producthandler) parseProductFromForm(w http.ResponseWriter, r *http.Req
 			}
 			product.PictureURL = &url
 		}
+		// If err == http.ErrMissingFile, simply skip the file upload (optional field)
 	} else {
 		// fallback to JSON body
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -36,7 +37,8 @@ func InitStorage(bucketName, accessKey, accessKeySecret, accountId, publicEndpoi
 	// assign to package-level variables so other packages can use it (if desired)
 	s3Client = client
 	bucket = bucketName
-	pEndpoint = publicEndpoint
+	// Normalize pEndpoint by trimming trailing slashes to avoid double slashes in URLs
+	pEndpoint = strings.TrimRight(publicEndpoint, "/")
 
 	return nil
 }

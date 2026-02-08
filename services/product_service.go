@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	_ "image/png"
 	"io"
 	"path/filepath"
 	"strings"
@@ -72,8 +73,36 @@ func (s *ProductService) UploadProductImage(ctx context.Context, r io.Reader, fi
 // compressImage compresses an image to reduce file size
 // Supports JPEG and PNG. Returns compressed image as reader, content type, and error
 func compressImage(r io.Reader, contentType string) (io.Reader, string, error) {
-	// Decode image
-	img, format, err := image.Decode(r)
+	// Read into buffer so we can decode config first, then decode again
+	buf := new(bytes.Buffer)
+	if _, err := io.Copy(buf, r); err != nil {
+		return nil, "", fmt.Errorf("failed to read image: %w", err)
+	}
+
+	// Check image dimensions before full decode to prevent decompression bombs
+	config, format, err := image.DecodeConfig(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to decode image config: %w", err)
+	}
+
+	// Reject images that are too large (e.g., max 10000x10000 = 100 megapixels)
+	const maxWidth = 10000
+	const maxHeight = 10000
+	const maxPixels = 100_000_000 // 100 megapixels
+
+	if config.Width > maxWidth || config.Height > maxHeight {
+		return nil, "", fmt.Errorf("image dimensions too large: %dx%d (max: %dx%d)",
+			config.Width, config.Height, maxWidth, maxHeight)
+	}
+
+	totalPixels := config.Width * config.Height
+	if totalPixels > maxPixels {
+		return nil, "", fmt.Errorf("image has too many pixels: %d (max: %d)",
+			totalPixels, maxPixels)
+	}
+
+	// Now safe to decode the full image
+	img, _, err := image.Decode(bytes.NewReader(buf.Bytes()))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to decode image: %w", err)
 	}
@@ -93,21 +122,42 @@ func compressImage(r io.Reader, contentType string) (io.Reader, string, error) {
 			width = width * maxDimension / height
 			height = maxDimension
 		}
+		// Clamp to at least 1 pixel to avoid zero dimensions
+		if width < 1 {
+			width = 1
+		}
+		if height < 1 {
+			height = 1
+		}
 		img = resize(img, width, height)
 	}
 
 	// Encode to buffer
-	var buf bytes.Buffer
+	var encodedBuf bytes.Buffer
 	var finalContentType string
 
 	// Convert PNG to JPEG for better compression, keep JPEG as JPEG
 	if strings.ToLower(format) == "png" {
+		// Flatten PNG onto white background to handle transparency
+		flatImg := image.NewRGBA(img.Bounds())
+		// Fill with white background
+		for y := flatImg.Bounds().Min.Y; y < flatImg.Bounds().Max.Y; y++ {
+			for x := flatImg.Bounds().Min.X; x < flatImg.Bounds().Max.X; x++ {
+				flatImg.Set(x, y, image.White)
+			}
+		}
+		// Draw original image on top
+		for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
+			for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
+				flatImg.Set(x, y, img.At(x, y))
+			}
+		}
 		// Convert to JPEG with 85% quality
-		err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85})
+		err = jpeg.Encode(&encodedBuf, flatImg, &jpeg.Options{Quality: 85})
 		finalContentType = "image/jpeg"
 	} else {
 		// JPEG: re-encode with 85% quality
-		err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85})
+		err = jpeg.Encode(&encodedBuf, img, &jpeg.Options{Quality: 85})
 		finalContentType = "image/jpeg"
 	}
 
@@ -115,7 +165,7 @@ func compressImage(r io.Reader, contentType string) (io.Reader, string, error) {
 		return nil, "", fmt.Errorf("failed to encode image: %w", err)
 	}
 
-	return &buf, finalContentType, nil
+	return &encodedBuf, finalContentType, nil
 }
 
 // resize implements simple nearest-neighbor image resizing

@@ -21,7 +21,7 @@ func (r *ProductRepository) GetAllProducts(name string) ([]models.Product, error
 	var products []models.Product
 
 	args := []interface{}{}
-	query := "SELECT products.id, products.name, products.description, products.price, products.stock, categories.id as category_id, categories.name as category_name FROM products LEFT JOIN categories ON products.category_id = categories.id"
+	query := "SELECT products.id, products.name, products.description, products.price, products.stock, products.picture_url, categories.id as category_id, categories.name as category_name FROM products LEFT JOIN categories ON products.category_id = categories.id"
 	if name != "" {
 		query += " WHERE products.name ILIKE $1"
 		args = append(args, "%"+name+"%")
@@ -35,7 +35,7 @@ func (r *ProductRepository) GetAllProducts(name string) ([]models.Product, error
 
 	for rows.Next() {
 		var product models.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Stock, &product.CategoryID, &product.CategoryName); err != nil {
+		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Stock, &product.PictureURL, &product.CategoryID, &product.CategoryName); err != nil {
 			return nil, err
 		}
 		products = append(products, product)
@@ -51,9 +51,9 @@ func (r *ProductRepository) GetAllProducts(name string) ([]models.Product, error
 func (r *ProductRepository) GetProductByID(id string) (*models.Product, error) {
 	var product models.Product
 
-	row := r.db.QueryRow("SELECT products.id, products.name, products.description, products.price, products.stock, categories.id as category_id, categories.name as category_name FROM products LEFT JOIN categories ON products.category_id = categories.id WHERE products.id = $1", id)
+	row := r.db.QueryRow("SELECT products.id, products.name, products.description, products.price, products.stock, products.picture_url, categories.id as category_id, categories.name as category_name FROM products LEFT JOIN categories ON products.category_id = categories.id WHERE products.id = $1", id)
 
-	if err := row.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Stock, &product.CategoryID, &product.CategoryName); err != nil {
+	if err := row.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Stock, &product.PictureURL, &product.CategoryID, &product.CategoryName); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("produk tidak ditemukan")
 		}
@@ -79,7 +79,7 @@ func (r *ProductRepository) CreateProduct(product *models.Product) error {
 }
 
 func (r *ProductRepository) UpdateProduct(product *models.Product) error {
-	result, err := r.db.Exec("UPDATE products SET name = $1, description = $2, price = $3, stock = $4, category_id = $5, picture_url = $6 WHERE id = $7", product.Name, product.Description, product.Price, product.Stock, product.CategoryID, product.PictureURL, product.ID)
+	result, err := r.db.Exec("UPDATE products SET name = $1, description = $2, price = $3, stock = $4, category_id = $5, picture_url = COALESCE($6, picture_url) WHERE id = $7", product.Name, product.Description, product.Price, product.Stock, product.CategoryID, product.PictureURL, product.ID)
 	if err != nil {
 		return err
 	}
