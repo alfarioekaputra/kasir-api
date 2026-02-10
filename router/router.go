@@ -1,7 +1,7 @@
 package router
 
 import (
-	"database/sql"
+	"gorm.io/gorm"
 
 	"github.com/go-chi/chi/v5"
 	"labkoding.my.id/kasir-api/handler"
@@ -10,11 +10,11 @@ import (
 )
 
 type Router struct {
-	db     *sql.DB
+	db     *gorm.DB
 	router chi.Router
 }
 
-func NewRouter(db *sql.DB, r chi.Router) *Router {
+func NewRouter(db *gorm.DB, r chi.Router) *Router {
 	return &Router{db: db, router: r}
 }
 

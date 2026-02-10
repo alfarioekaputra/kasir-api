@@ -1,21 +1,59 @@
 # kasir-api
 
-API sederhana untuk mengelola kategori dan produk, dibuat dengan Go + chi dan PostgreSQL.
+API sederhana untuk mengelola kategori dan produk, dibuat dengan Go + chi dan GORM.
 
 ## Ringkasan
 
 - Bahasa: Go
 - Router: chi
-- Database: PostgreSQL (implementasi saat ini menggunakan fitur `RETURNING` dan `json_agg`)
+- ORM: GORM (support PostgreSQL & MySQL)
+- Database: PostgreSQL atau MySQL (configurable)
 - Environment variables:
   - `PORT` — port server (contoh: `3000`)
-  - `DB_CONN` — connection string ke database Postgres (contoh: `postgres://user:pass@host:port/dbname?sslmode=disable`)
+  - `DB_TYPE` — tipe database (`postgres` atau `mysql`, default: `postgres`)
+  - `DB_CONN` — connection string ke database
 
-Menjalankan server (contoh):
+## Connection String Format
+
+### PostgreSQL
+
+```
+postgres://user:pass@host:port/dbname?sslmode=disable
+```
+
+### MySQL
+
+```
+user:pass@tcp(host:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
+```
+
+## Menjalankan Server
+
+### Menggunakan PostgreSQL (default)
 
 ```bash
 export PORT=3000
+export DB_TYPE=postgres
 export DB_CONN="postgres://user:pass@host:5432/dbname?sslmode=disable"
+go run main.go
+```
+
+### Menggunakan MySQL
+
+```bash
+export PORT=3000
+export DB_TYPE=mysql
+export DB_CONN="user:pass@tcp(localhost:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
+go run main.go
+```
+
+### Menggunakan .env file
+
+Salin file `.env.example` ke `.env` dan sesuaikan konfigurasi:
+
+```bash
+cp .env.example .env
+# Edit .env sesuai kebutuhan
 go run main.go
 ```
 

@@ -23,6 +23,7 @@ import (
 
 type Config struct {
 	Port            string `mapstructure:"PORT"`
+	DBType          string `mapstructure:"DB_TYPE"`
 	DBConn          string `mapstructure:"DB_CONN"`
 	BucketName      string `mapstructure:"BUCKET_NAME"`
 	AccountID       string `mapstructure:"ACCOUNT_ID"`
@@ -42,6 +43,7 @@ func main() {
 
 	config := Config{
 		Port:            viper.GetString("PORT"),
+		DBType:          viper.GetString("DB_TYPE"),
 		DBConn:          viper.GetString("DB_CONN"),
 		BucketName:      viper.GetString("BUCKET_NAME"),
 		AccountID:       viper.GetString("ACCOUNT_ID"),
@@ -49,11 +51,31 @@ func main() {
 		SecretAccessKey: viper.GetString("SECRET_ACCESS_KEY"),
 		PublicEndpoint:  viper.GetString("PUBLIC_ENDPOINT"),
 	}
-	db, err := database.InitDB(config.DBConn)
+
+	// Set default DB type to postgres if not specified
+	if config.DBType == "" {
+		config.DBType = "postgres"
+	}
+
+	// Initialize database with type
+	dbConfig := database.Config{
+		Type:             database.DatabaseType(config.DBType),
+		ConnectionString: config.DBConn,
+		MaxOpenConns:     25,
+		MaxIdleConns:     5,
+	}
+
+	db, err := database.InitDB(dbConfig)
 	if err != nil {
 		log.Fatal("Failed to initialize database:", err)
 	}
-	defer db.Close()
+
+	// Get underlying sql.DB for proper cleanup
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatal("Failed to get sql.DB:", err)
+	}
+	defer sqlDB.Close()
 
 	err = external.InitStorage(config.BucketName, config.AccessKeyID, config.SecretAccessKey, config.AccountID, config.PublicEndpoint)
 	if err != nil {
